@@ -228,7 +228,7 @@ def adjust_category(complaint, ml_category):
             "faculty",
             "lecturer",
             "syllabus",
-            "class"
+            
         ],
 
         "Finance": [
@@ -269,8 +269,10 @@ def adjust_category(complaint, ml_category):
             "electricity",
             "power",
             "fan",
+            "fans",
             "air conditioner",
             "washroom",
+            "washrooms",
             "bathroom",
             "hostel",
             "ceiling",
