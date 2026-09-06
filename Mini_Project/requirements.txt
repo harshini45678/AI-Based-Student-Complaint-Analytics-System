@@ -1,6 +1,0 @@
-streamlit
-pandas
-plotly
-joblib
-scikit-learn
-nltk
