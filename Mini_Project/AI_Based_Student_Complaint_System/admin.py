@@ -1,14 +1,21 @@
+"""
+=========================================================
+Project : AI-Based Student Complaint Analytics System
+File    : admin.py
+Description : Admin Complaint Management Panel
+=========================================================
+"""
+
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
 
 
 # =========================================================
-# DATASET
+# COMPLAINT FILE
 # =========================================================
 
-DATASET_FILE = Path(
-    "data_set/student_complaints.csv"
+COMPLAINT_FILE = Path(
+    "outputs/complaint_records.csv"
 )
 
 
@@ -16,63 +23,123 @@ DATASET_FILE = Path(
 # HEADER
 # =========================================================
 
-print("=" * 70)
-print("AI STUDENT COMPLAINT - ADMIN PANEL")
-print("=" * 70)
+print("\n" + "=" * 75)
+print("AI-BASED STUDENT COMPLAINT ANALYTICS SYSTEM")
+print("ADMIN COMPLAINT MANAGEMENT PANEL")
+print("=" * 75)
 
 
 # =========================================================
-# CHECK DATASET
+# CHECK FILE
 # =========================================================
 
-if not DATASET_FILE.exists():
+if not COMPLAINT_FILE.exists():
 
-    print("\nNo complaint database found.")
+    print("\n❌ No complaint records found.")
+
     exit()
 
 
 # =========================================================
-# LOAD COMPLAINTS
+# LOAD DATA
 # =========================================================
 
-df = pd.read_csv(
-    DATASET_FILE
+df = pd.read_csv(COMPLAINT_FILE)
+
+df.columns = (
+    df.columns.astype(str).str.strip()
 )
 
 
+# =========================================================
+# CHECK EMPTY
+# =========================================================
+
 if df.empty:
 
-    print("\nNo complaints available.")
+    print("\n⚠️ No complaints available.")
+
     exit()
+
+
+# =========================================================
+# ADD ASSIGNED STAFF COLUMN IF MISSING
+# =========================================================
+
+if "Assigned_Staff" not in df.columns:
+
+    df["Assigned_Staff"] = "Not Assigned"
+
+else:
+
+    df["Assigned_Staff"] = (
+        df["Assigned_Staff"]
+        .fillna("Not Assigned")
+    )
+
+
+# =========================================================
+# ADD RESOLUTION DETAILS COLUMN IF MISSING
+# =========================================================
+
+if "Resolution_Details" not in df.columns:
+
+    df["Resolution_Details"] = "Not Resolved"
+
+else:
+
+    df["Resolution_Details"] = (
+        df["Resolution_Details"]
+        .fillna("Not Resolved")
+    )
 
 
 # =========================================================
 # DISPLAY COMPLAINTS
 # =========================================================
 
-print(
-    f"\nTotal Complaints: {len(df)}"
-)
+print(f"\nTotal Complaints: {len(df)}")
+
+print("\n" + "=" * 75)
+print("ALL COMPLAINT RECORDS")
+print("=" * 75)
+
 
 display_columns = [
+
     "Complaint_ID",
-    "Student_ID",
-    "Complaint_Category",
+    "Roll_Number",
+    "Student_Department",
+    "Category",
     "Priority",
     "Sentiment",
-    "Status",
-    "Assigned_To"
+    "Assigned_Department",
+    "Assigned_Staff",
+    "Status"
+
 ]
 
-print("\n" + "=" * 70)
+
+available_columns = [
+
+    column
+
+    for column in display_columns
+
+    if column in df.columns
+]
+
 
 print(
-    df[display_columns].to_string(
+
+    df[available_columns].to_string(
         index=False
     )
+
 )
 
-print("\n" + "=" * 70)
+
+print("\n" + "=" * 75)
 
 
 # =========================================================
@@ -92,8 +159,7 @@ while True:
 
 
     print(
-        "Invalid Complaint ID."
-        "\nPlease enter an ID from the list above."
+        "\n❌ Invalid Complaint ID."
     )
 
 
@@ -102,18 +168,22 @@ while True:
 # =========================================================
 
 index = df[
-    df["Complaint_ID"].astype(str)
+
+    df["Complaint_ID"]
+    .astype(str)
     == complaint_id
+
 ].index[0]
 
 
 # =========================================================
-# DISPLAY SELECTED COMPLAINT
+# DISPLAY COMPLAINT DETAILS
 # =========================================================
 
-print("\n" + "=" * 70)
+print("\n" + "=" * 75)
 print("SELECTED COMPLAINT")
-print("=" * 70)
+print("=" * 75)
+
 
 print(
     "\nComplaint ID:",
@@ -121,79 +191,131 @@ print(
 )
 
 print(
-    "\nStudent ID:",
-    df.loc[index, "Student_ID"]
+    "Roll Number:",
+    df.loc[index, "Roll_Number"]
 )
 
 print(
-    "\nCategory:",
-    df.loc[index, "Complaint_Category"]
+    "Student Department:",
+    df.loc[index, "Student_Department"]
 )
 
 print(
-    "\nPriority:",
+    "Category:",
+    df.loc[index, "Category"]
+)
+
+print(
+    "Priority:",
     df.loc[index, "Priority"]
 )
 
 print(
-    "\nSentiment:",
+    "Sentiment:",
     df.loc[index, "Sentiment"]
 )
 
 print(
-    "\nCurrent Status:",
+    "Assigned Department:",
+    df.loc[index, "Assigned_Department"]
+)
+
+print(
+    "Assigned Staff:",
+    df.loc[index, "Assigned_Staff"]
+)
+
+print(
+    "Current Status:",
     df.loc[index, "Status"]
 )
 
 print(
-    "\nCurrent Assigned To:",
-    df.loc[index, "Assigned_To"]
+    "\nComplaint:",
+    df.loc[index, "Complaint"]
 )
+
+
+# =========================================================
+# DISPLAY RESOLUTION DETAILS
+# =========================================================
+
+if str(df.loc[index, "Status"]).strip() == "Resolved":
+
+    print(
+        "\nResolution Details:",
+        df.loc[index, "Resolution_Details"]
+    )
 
 
 # =========================================================
 # ASSIGN STAFF
 # =========================================================
 
-assigned_to = input(
-    "\nEnter staff member name: "
+print("\n" + "=" * 75)
+print("ASSIGN STAFF MEMBER")
+print("=" * 75)
+
+
+current_staff = df.loc[
+    index,
+    "Assigned_Staff"
+]
+
+
+print(
+    "\nCurrent Staff:",
+    current_staff
+)
+
+
+staff_name = input(
+    "\nEnter Staff Member Name: "
 ).strip()
 
 
-if not assigned_to:
+# Keep current staff if empty
 
-    assigned_to = "Unassigned"
+if staff_name == "":
+
+    staff_name = current_staff
 
 
 df.loc[
     index,
-    "Assigned_To"
-] = assigned_to
+    "Assigned_Staff"
+] = staff_name
 
 
 # =========================================================
 # UPDATE STATUS
 # =========================================================
 
-print("\nSelect New Status:")
+print("\n" + "=" * 75)
+print("SELECT NEW STATUS")
+print("=" * 75)
 
-print("1. Open")
+print("\n1. Pending")
 print("2. In Progress")
 print("3. Resolved")
+
+
+statuses = {
+
+    "1": "Pending",
+
+    "2": "In Progress",
+
+    "3": "Resolved"
+
+}
 
 
 while True:
 
     status_choice = input(
-        "\nEnter status number: "
+        "\nEnter status number (1-3): "
     ).strip()
-
-
-    statuses = {
-        "1": "Open",
-        "2": "In Progress",
-        "3": "Resolved"
-    }
 
 
     if status_choice in statuses:
@@ -206,56 +328,87 @@ while True:
 
 
     print(
-        "Invalid choice."
-        "\nPlease enter 1, 2, or 3."
+        "\n❌ Invalid choice."
     )
 
+
+# =========================================================
+# UPDATE STATUS
+# =========================================================
 
 df.loc[
     index,
     "Status"
 ] = new_status
 
+
 # =========================================================
-# RESOLUTION TIME
+# ENTER RESOLUTION DETAILS
 # =========================================================
 
 if new_status == "Resolved":
 
-    date_reported = pd.to_datetime(
-        df.loc[index, "Date_Reported"]
-    )
+    print("\n" + "=" * 75)
+    print("ENTER RESOLUTION DETAILS")
+    print("=" * 75)
 
-    date_resolved = datetime.now()
 
-    resolution_days = (
-        date_resolved.date()
-        - date_reported.date()
-    ).days
+    while True:
+
+        resolution_details = input(
+            "\nEnter Resolution Details: "
+        ).strip()
+
+
+        if resolution_details != "":
+
+            break
+
+
+        print(
+            "\n❌ Resolution details cannot be empty."
+        )
+
 
     df.loc[
         index,
-        "Resolution_Time_Days"
-    ] = resolution_days
+        "Resolution_Details"
+    ] = resolution_details
+
+
+else:
+
+    # If complaint is not resolved,
+    # keep Resolution Details as Not Resolved
+
+    if str(
+        df.loc[index, "Resolution_Details"]
+    ).strip() == "":
+
+        df.loc[
+            index,
+            "Resolution_Details"
+        ] = "Not Resolved"
 
 
 # =========================================================
-# SAVE CHANGES
+# SAVE DATA
 # =========================================================
 
 df.to_csv(
-    DATASET_FILE,
+    COMPLAINT_FILE,
     index=False
 )
 
 
 # =========================================================
-# CONFIRMATION
+# SUCCESS MESSAGE
 # =========================================================
 
-print("\n" + "=" * 70)
-print("COMPLAINT UPDATED SUCCESSFULLY")
-print("=" * 70)
+print("\n" + "=" * 75)
+print("✅ COMPLAINT UPDATED SUCCESSFULLY")
+print("=" * 75)
+
 
 print(
     "\nComplaint ID:",
@@ -263,23 +416,34 @@ print(
 )
 
 print(
-    "\nAssigned To:",
-    assigned_to
+    "Assigned Staff:",
+    staff_name
 )
 
 print(
-    "\nStatus:",
+    "New Status:",
     new_status
 )
+
 
 if new_status == "Resolved":
 
     print(
-        "\nResolution Time:",
-        int(df.loc[index, "Resolution_Time_Days"]),
-        "days"
+        "Resolution Details:",
+        resolution_details
     )
 
-print("\nChanges saved successfully.")
 
-print("=" * 70)
+print(
+    "\nChanges saved successfully!"
+)
+
+print(
+    "\nThe updated information will now appear"
+)
+
+print(
+    "in the Complaint Dashboard."
+)
+
+print("=" * 75)

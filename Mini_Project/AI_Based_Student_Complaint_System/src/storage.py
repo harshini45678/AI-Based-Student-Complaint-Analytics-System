@@ -7,7 +7,6 @@ Description : Complaint Record Storage Module
 """
 
 import csv
-import pandas as pd
 from datetime import datetime
 
 from src.config import OUTPUT_DIR
@@ -17,7 +16,7 @@ class ComplaintStorage:
 
     def __init__(self):
 
-        # Make sure outputs directory exists
+        # Create outputs directory if it does not exist
         OUTPUT_DIR.mkdir(
             parents=True,
             exist_ok=True
@@ -27,7 +26,6 @@ class ComplaintStorage:
             OUTPUT_DIR / "complaint_records.csv"
         )
 
-        # CSV headers
         self.headers = [
 
             "Complaint_ID",
@@ -41,11 +39,14 @@ class ComplaintStorage:
             "Sentiment",
             "Priority",
             "Assigned_Department",
+            "Assigned_Staff",
             "Status",
-            "Suggested_Resolution"
+            "Suggested_Resolution",
+            "Resolution_Details"
+
         ]
 
-        # Create file with headers if it does not exist
+        # Create CSV file if it does not exist
         if not self.file_path.exists():
 
             with open(
@@ -57,7 +58,9 @@ class ComplaintStorage:
 
                 writer = csv.writer(file)
 
-                writer.writerow(self.headers)
+                writer.writerow(
+                    self.headers
+                )
 
 
     # =====================================================
@@ -65,10 +68,6 @@ class ComplaintStorage:
     # =====================================================
 
     def generate_complaint_id(self):
-
-        """
-        Generate a unique complaint ID.
-        """
 
         timestamp = datetime.now().strftime(
             "%Y%m%d%H%M%S%f"
@@ -82,10 +81,6 @@ class ComplaintStorage:
     # =====================================================
 
     def save_complaint(self, record):
-
-        """
-        Save complaint information into CSV.
-        """
 
         file_exists = self.file_path.exists()
 
@@ -101,7 +96,6 @@ class ComplaintStorage:
                 fieldnames=self.headers
             )
 
-            # Write headers if file is new or empty
             if (
                 not file_exists
                 or self.file_path.stat().st_size == 0
@@ -145,73 +139,18 @@ class ComplaintStorage:
                 "Assigned_Department":
                     record["Department"],
 
+                "Assigned_Staff":
+                    "Not Assigned",
+
                 "Status":
                     record["Status"],
 
                 "Suggested_Resolution":
-                    record["Suggested Resolution"]
+                    record["Suggested Resolution"],
+
+                "Resolution_Details":
+                    "Not Resolved Yet"
+
             })
 
         return self.file_path
-
-
-    # =====================================================
-    # UPDATE COMPLAINT STATUS
-    # =====================================================
-
-    def update_status(
-        self,
-        complaint_id,
-        new_status
-    ):
-
-        """
-        Update the status of a complaint.
-        """
-
-        # Check whether the file exists
-        if not self.file_path.exists():
-
-            return False
-
-
-        # Read CSV file
-        df = pd.read_csv(
-            self.file_path
-        )
-
-
-        # Check Complaint_ID column
-        if "Complaint_ID" not in df.columns:
-
-            return False
-
-
-        # Find complaint
-        matching_rows = (
-            df["Complaint_ID"].astype(str)
-            == str(complaint_id)
-        )
-
-
-        # Complaint not found
-        if not matching_rows.any():
-
-            return False
-
-
-        # Update status
-        df.loc[
-            matching_rows,
-            "Status"
-        ] = new_status
-
-
-        # Save updated CSV
-        df.to_csv(
-            self.file_path,
-            index=False
-        )
-
-
-        return True
