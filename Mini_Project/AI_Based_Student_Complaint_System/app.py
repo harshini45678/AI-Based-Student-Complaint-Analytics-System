@@ -12,9 +12,8 @@ import pandas as pd
 import plotly.express as px
 
 from datetime import datetime
-from pathlib import Path
 
-from src.config import MODEL_DIR
+from src.config import MODEL_DIR, OUTPUT_DIR
 from src.sentiment import SentimentAnalyzer
 from src.resolution import ResolutionRecommender
 from src.storage import ComplaintStorage
@@ -28,32 +27,6 @@ st.set_page_config(
     page_title="Student Complaint Analytics System",
     page_icon="🎓",
     layout="wide"
-)
-
-
-# =========================================================
-# ADMIN LOGIN DETAILS
-# =========================================================
-
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"
-
-
-# =========================================================
-# SESSION STATE
-# =========================================================
-
-if "admin_logged_in" not in st.session_state:
-
-    st.session_state.admin_logged_in = False
-
-
-# =========================================================
-# FILE PATH
-# =========================================================
-
-COMPLAINT_FILE = Path(
-    "outputs/complaint_records.csv"
 )
 
 
@@ -406,83 +379,6 @@ def adjust_priority(
 
 
 # =========================================================
-# LOAD COMPLAINT DATA
-# =========================================================
-
-def load_complaint_data():
-
-    if not COMPLAINT_FILE.exists():
-
-        return None
-
-
-    df = pd.read_csv(COMPLAINT_FILE)
-
-
-    df.columns = (
-
-        df.columns
-        .astype(str)
-        .str.strip()
-
-    )
-
-
-    # =====================================================
-    # ASSIGNED STAFF
-    # =====================================================
-
-    if "Assigned_Staff" not in df.columns:
-
-        df["Assigned_Staff"] = "Not Assigned"
-
-    else:
-
-        df["Assigned_Staff"] = (
-
-            df["Assigned_Staff"]
-            .fillna("Not Assigned")
-
-        )
-
-
-    # =====================================================
-    # RESOLUTION DETAILS
-    # =====================================================
-
-    if "Resolution_Details" not in df.columns:
-
-        df["Resolution_Details"] = "Not Resolved Yet"
-
-    else:
-
-        df["Resolution_Details"] = (
-
-            df["Resolution_Details"]
-            .fillna("Not Resolved Yet")
-
-        )
-
-
-    return df
-
-
-# =========================================================
-# SAVE COMPLAINT DATA
-# =========================================================
-
-def save_complaint_data(df):
-
-    df.to_csv(
-
-        COMPLAINT_FILE,
-
-        index=False
-
-    )
-
-
-# =========================================================
 # MAIN APPLICATION
 # =========================================================
 
@@ -508,60 +404,22 @@ def main():
     # SIDEBAR
     # =====================================================
 
-    st.sidebar.title(
-        "🎓 Navigation"
-    )
-
-
-    menu_options = [
-
-        "📝 Submit Complaint",
-
-        "🔍 Track My Complaint",
-
-        "🔐 Admin Login"
-
-    ]
-
-
-    if st.session_state.admin_logged_in:
-
-        menu_options.append(
-            "📊 Admin Dashboard"
-        )
+    st.sidebar.title("🎓 Navigation")
 
 
     page = st.sidebar.radio(
 
         "Select Page",
 
-        menu_options
+        [
+
+            "Submit Complaint",
+            "Track Complaint",
+            "Complaint Dashboard"
+
+        ]
 
     )
-
-
-    # =====================================================
-    # ADMIN LOGOUT
-    # =====================================================
-
-    if st.session_state.admin_logged_in:
-
-
-        st.sidebar.divider()
-
-
-        st.sidebar.success(
-            "👨‍💼 Admin Logged In"
-        )
-
-
-        if st.sidebar.button(
-            "🚪 Logout"
-        ):
-
-            st.session_state.admin_logged_in = False
-
-            st.rerun()
 
 
     # =====================================================
@@ -574,37 +432,28 @@ def main():
 
 
     st.markdown(
-
         "### Intelligent Complaint Classification, "
         "Priority Prediction and Resolution Recommendation"
-
     )
 
 
     # =====================================================
-    # SUBMIT COMPLAINT PAGE
+    # SUBMIT COMPLAINT
     # =====================================================
 
-    if page == "📝 Submit Complaint":
+    if page == "Submit Complaint":
 
 
-        st.header(
-            "📝 Submit Student Complaint"
-        )
+        st.header("📝 Submit Student Complaint")
 
 
         with st.form(
-
             "complaint_form",
-
             clear_on_submit=True
-
         ):
 
 
-            st.subheader(
-                "👨‍🎓 Student Details"
-            )
+            st.subheader("👨‍🎓 Student Details")
 
 
             col1, col2 = st.columns(2)
@@ -612,45 +461,32 @@ def main():
 
             with col1:
 
-
                 roll_number = st.text_input(
                     "Roll Number"
                 )
 
 
                 student_department = st.selectbox(
-
                     "Student Department",
-
                     STUDENT_DEPARTMENTS
-
                 )
 
 
             with col2:
 
-
                 year = st.selectbox(
-
                     "Year",
-
                     ["1", "2", "3", "4"]
-
                 )
 
 
                 semester = st.selectbox(
-
                     "Semester",
-
                     ["1", "2"]
-
                 )
 
 
-            st.subheader(
-                "📝 Complaint Details"
-            )
+            st.subheader("📝 Complaint Details")
 
 
             complaint = st.text_area(
@@ -659,16 +495,13 @@ def main():
 
                 height=150,
 
-                placeholder=
-                "Describe your complaint clearly..."
+                placeholder="Describe your complaint clearly..."
 
             )
 
 
             submitted = st.form_submit_button(
-
                 "🔍 Analyze Complaint"
-
             )
 
 
@@ -707,12 +540,8 @@ def main():
 
                 # SENTIMENT
 
-                sentiment = (
-
-                    sentiment_analyzer.predict_sentiment(
-                        complaint
-                    )
-
+                sentiment = sentiment_analyzer.predict_sentiment(
+                    complaint
                 )
 
 
@@ -724,54 +553,40 @@ def main():
 
 
                 priority = adjust_priority(
-
                     complaint,
                     category,
                     ml_priority
-
                 )
 
 
                 # DEPARTMENT
 
-                assigned_department = (
-
-                    get_assigned_department(
-                        category
-                    )
-
+                assigned_department = get_assigned_department(
+                    category
                 )
 
 
-                # AI RESOLUTION
+                # RESOLUTION
 
-                resolution = (
-
-                    resolution_recommender.recommend(
-                        category,
-                        priority
-                    )
-
+                resolution = resolution_recommender.recommend(
+                    category,
+                    priority
                 )
 
 
                 # COMPLAINT ID
 
-                complaint_id = (
-
-                    storage.generate_complaint_id()
-
-                )
+                complaint_id = storage.generate_complaint_id()
 
 
-                # DATE
+                # DATE TIME
 
                 date_time = datetime.now().strftime(
-
                     "%Y-%m-%d %H:%M:%S"
-
                 )
 
+
+                # STATUS
 
                 status = "Pending"
 
@@ -780,44 +595,31 @@ def main():
 
                 record = {
 
-                    "Complaint_ID":
-                        complaint_id,
+                    "Complaint_ID": complaint_id,
 
-                    "Date_Time":
-                        date_time,
+                    "Date_Time": date_time,
 
-                    "Roll_Number":
-                        roll_number,
+                    "Roll_Number": roll_number,
 
-                    "Student_Department":
-                        student_department,
+                    "Student_Department": student_department,
 
-                    "Year":
-                        year,
+                    "Year": year,
 
-                    "Semester":
-                        semester,
+                    "Semester": semester,
 
-                    "Complaint":
-                        complaint,
+                    "Complaint": complaint,
 
-                    "Category":
-                        category,
+                    "Category": category,
 
-                    "Sentiment":
-                        sentiment,
+                    "Sentiment": sentiment,
 
-                    "Priority":
-                        priority,
+                    "Priority": priority,
 
-                    "Department":
-                        assigned_department,
+                    "Department": assigned_department,
 
-                    "Status":
-                        status,
+                    "Status": status,
 
-                    "Suggested Resolution":
-                        resolution
+                    "Suggested Resolution": resolution
 
                 }
 
@@ -833,18 +635,6 @@ def main():
                     "✅ Complaint analyzed and saved successfully!"
                 )
 
-
-                st.info(
-                    f"📌 Your Complaint ID is: **{complaint_id}**"
-                )
-
-
-                st.warning(
-                    "Please save this Complaint ID to track your complaint."
-                )
-
-
-                # RESULTS
 
                 st.header(
                     "📊 Complaint Analysis Result"
@@ -882,9 +672,59 @@ def main():
 
 
                 st.subheader(
-                    "🏢 Assigned Department"
+                    "👨‍🎓 Student Information"
                 )
 
+
+                info_col1, info_col2 = st.columns(2)
+
+
+                with info_col1:
+
+                    st.write(
+                        "**Complaint ID:**",
+                        complaint_id
+                    )
+
+                    st.write(
+                        "**Roll Number:**",
+                        roll_number
+                    )
+
+                    st.write(
+                        "**Student Department:**",
+                        student_department
+                    )
+
+
+                with info_col2:
+
+                    st.write(
+                        "**Date & Time:**",
+                        date_time
+                    )
+
+                    st.write(
+                        "**Year:**",
+                        year
+                    )
+
+                    st.write(
+                        "**Semester:**",
+                        semester
+                    )
+
+
+                st.subheader(
+                    "📝 Student Complaint"
+                )
+
+                st.info(complaint)
+
+
+                st.subheader(
+                    "🏢 Assigned Department"
+                )
 
                 st.write(
                     assigned_department
@@ -895,36 +735,28 @@ def main():
                     "⏳ Complaint Status"
                 )
 
-
-                st.warning(
-                    status
-                )
+                st.warning(status)
 
 
                 st.subheader(
-                    "💡 AI Suggested Resolution"
+                    "💡 Suggested Resolution"
                 )
 
-
-                st.success(
-                    resolution
-                )
+                st.success(resolution)
 
 
     # =====================================================
-    # TRACK COMPLAINT PAGE
+    # TRACK COMPLAINT
     # =====================================================
 
-    elif page == "🔍 Track My Complaint":
+    elif page == "Track Complaint":
 
 
-        st.header(
-            "🔍 Track My Complaint"
-        )
+        st.header("🔍 Track Your Complaint")
 
 
         st.write(
-            "Enter your Complaint ID to check your complaint."
+            "Enter your Complaint ID to check the current status."
         )
 
 
@@ -933,9 +765,7 @@ def main():
         )
 
 
-        if st.button(
-            "🔍 Track Complaint"
-        ):
+        if st.button("🔍 Track Complaint"):
 
 
             if complaint_id_input.strip() == "":
@@ -948,10 +778,14 @@ def main():
             else:
 
 
-                df = load_complaint_data()
+                # IMPORTANT: SAME PATH AS STORAGE
+
+                output_file = (
+                    OUTPUT_DIR / "complaint_records.csv"
+                )
 
 
-                if df is None:
+                if not output_file.exists():
 
                     st.error(
                         "❌ No complaint records found."
@@ -959,6 +793,46 @@ def main():
 
 
                 else:
+
+
+                    df = pd.read_csv(
+                        output_file
+                    )
+
+
+                    df.columns = (
+                        df.columns.astype(str).str.strip()
+                    )
+
+
+                    if "Assigned_Staff" not in df.columns:
+
+                        df["Assigned_Staff"] = (
+                            "Not Assigned"
+                        )
+
+
+                    else:
+
+                        df["Assigned_Staff"] = (
+                            df["Assigned_Staff"]
+                            .fillna("Not Assigned")
+                        )
+
+
+                    if "Resolution_Details" not in df.columns:
+
+                        df["Resolution_Details"] = (
+                            "Not Resolved Yet"
+                        )
+
+
+                    else:
+
+                        df["Resolution_Details"] = (
+                            df["Resolution_Details"]
+                            .fillna("Not Resolved Yet")
+                        )
 
 
                     result = df[
@@ -994,28 +868,16 @@ def main():
 
 
                         st.write(
-
                             "**Complaint ID:**",
-
-                            complaint_data[
-                                "Complaint_ID"
-                            ]
-
+                            complaint_data["Complaint_ID"]
                         )
 
 
                         st.write(
-
                             "**Complaint:**",
-
-                            complaint_data[
-                                "Complaint"
-                            ]
-
+                            complaint_data["Complaint"]
                         )
 
-
-                        # AI ANALYSIS
 
                         st.subheader(
                             "🤖 AI Analysis"
@@ -1028,43 +890,26 @@ def main():
                         with col1:
 
                             st.metric(
-
                                 "Category",
-
-                                complaint_data[
-                                    "Category"
-                                ]
-
+                                complaint_data["Category"]
                             )
 
 
                         with col2:
 
                             st.metric(
-
                                 "Priority",
-
-                                complaint_data[
-                                    "Priority"
-                                ]
-
+                                complaint_data["Priority"]
                             )
 
 
                         with col3:
 
                             st.metric(
-
                                 "Sentiment",
-
-                                complaint_data[
-                                    "Sentiment"
-                                ]
-
+                                complaint_data["Sentiment"]
                             )
 
-
-                        # ASSIGNMENT
 
                         st.subheader(
                             "👨‍💼 Complaint Assignment"
@@ -1072,28 +917,20 @@ def main():
 
 
                         st.write(
-
                             "**Assigned Department:**",
-
                             complaint_data[
                                 "Assigned_Department"
                             ]
-
                         )
 
 
                         st.write(
-
                             "**Assigned Staff:**",
-
                             complaint_data[
                                 "Assigned_Staff"
                             ]
-
                         )
 
-
-                        # STATUS
 
                         st.subheader(
                             "📌 Current Status"
@@ -1101,11 +938,7 @@ def main():
 
 
                         status = str(
-
-                            complaint_data[
-                                "Status"
-                            ]
-
+                            complaint_data["Status"]
                         ).strip()
 
 
@@ -1130,8 +963,6 @@ def main():
                             )
 
 
-                        # RESOLUTION
-
                         if status == "Resolved":
 
 
@@ -1141,19 +972,23 @@ def main():
 
 
                             resolution_details = (
-
                                 complaint_data[
                                     "Resolution_Details"
                                 ]
-
                             )
 
 
                             if (
 
-                                str(
-                                    resolution_details
-                                ).strip()
+                                pd.isna(resolution_details)
+
+                                or
+
+                                str(resolution_details).strip() == ""
+
+                                or
+
+                                str(resolution_details).strip()
                                 == "Not Resolved Yet"
 
                             ):
@@ -1171,106 +1006,10 @@ def main():
 
 
     # =====================================================
-    # ADMIN LOGIN
+    # COMPLAINT DASHBOARD
     # =====================================================
 
-    elif page == "🔐 Admin Login":
-
-
-        st.header(
-            "🔐 Admin Login"
-        )
-
-
-        if st.session_state.admin_logged_in:
-
-
-            st.success(
-                "✅ You are already logged in."
-            )
-
-
-            st.info(
-                "Open Admin Dashboard from the sidebar."
-            )
-
-
-        else:
-
-
-            with st.form(
-                "admin_login_form"
-            ):
-
-
-                username = st.text_input(
-                    "Username"
-                )
-
-
-                password = st.text_input(
-
-                    "Password",
-
-                    type="password"
-
-                )
-
-
-                login = st.form_submit_button(
-                    "🔐 Login"
-                )
-
-
-            if login:
-
-
-                if (
-
-                    username == ADMIN_USERNAME
-
-                    and
-
-                    password == ADMIN_PASSWORD
-
-                ):
-
-
-                    st.session_state.admin_logged_in = True
-
-
-                    st.success(
-                        "✅ Admin Login Successful!"
-                    )
-
-
-                    st.rerun()
-
-
-                else:
-
-
-                    st.error(
-                        "❌ Invalid Username or Password."
-                    )
-
-
-    # =====================================================
-    # ADMIN DASHBOARD
-    # =====================================================
-
-    elif page == "📊 Admin Dashboard":
-
-
-        if not st.session_state.admin_logged_in:
-
-
-            st.error(
-                "❌ Access Denied."
-            )
-
-
-            return
+    elif page == "Complaint Dashboard":
 
 
         st.header(
@@ -1278,562 +1017,524 @@ def main():
         )
 
 
-        df = load_complaint_data()
+        # IMPORTANT: SAME PATH AS STORAGE
+
+        output_file = (
+            OUTPUT_DIR / "complaint_records.csv"
+        )
 
 
-        if df is None or df.empty:
-
+        if not output_file.exists():
 
             st.warning(
                 "⚠️ No complaint records available."
             )
 
 
-            return
+        else:
 
 
-        # =================================================
-        # METRICS
-        # =================================================
-
-        total_complaints = len(df)
-
-
-        pending_complaints = len(
-
-            df[
-                df["Status"]
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                == "pending"
-            ]
-
-        )
-
-
-        in_progress_complaints = len(
-
-            df[
-                df["Status"]
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                == "in progress"
-            ]
-
-        )
-
-
-        resolved_complaints = len(
-
-            df[
-                df["Status"]
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                == "resolved"
-            ]
-
-        )
-
-
-        col1, col2, col3, col4 = st.columns(4)
-
-
-        with col1:
-
-            st.metric(
-                "Total Complaints",
-                total_complaints
+            df = pd.read_csv(
+                output_file
             )
 
 
-        with col2:
-
-            st.metric(
-                "Pending",
-                pending_complaints
+            df.columns = (
+                df.columns.astype(str).str.strip()
             )
 
 
-        with col3:
+            if "Assigned_Staff" not in df.columns:
 
-            st.metric(
-                "In Progress",
-                in_progress_complaints
-            )
-
-
-        with col4:
-
-            st.metric(
-                "Resolved",
-                resolved_complaints
-            )
-
-
-        st.divider()
-
-
-        # =================================================
-        # ANALYTICS CHARTS
-        # =================================================
-
-        st.subheader(
-            "📌 Complaints by Category"
-        )
-
-
-        category_counts = (
-
-            df["Category"]
-            .value_counts()
-            .reset_index()
-
-        )
-
-
-        category_counts.columns = [
-
-            "Category",
-            "Count"
-
-        ]
-
-
-        fig = px.bar(
-
-            category_counts,
-
-            x="Category",
-
-            y="Count",
-
-            text="Count"
-
-        )
-
-
-        st.plotly_chart(
-            fig,
-            width="stretch"
-        )
-
-
-        st.subheader(
-            "⚠️ Complaints by Priority"
-        )
-
-
-        priority_counts = (
-
-            df["Priority"]
-            .value_counts()
-            .reset_index()
-
-        )
-
-
-        priority_counts.columns = [
-
-            "Priority",
-            "Count"
-
-        ]
-
-
-        fig = px.bar(
-
-            priority_counts,
-
-            x="Priority",
-
-            y="Count",
-
-            text="Count"
-
-        )
-
-
-        st.plotly_chart(
-            fig,
-            width="stretch"
-        )
-
-
-        st.subheader(
-            "📋 Complaints by Status"
-        )
-
-
-        status_counts = (
-
-            df["Status"]
-            .value_counts()
-            .reset_index()
-
-        )
-
-
-        status_counts.columns = [
-
-            "Status",
-            "Count"
-
-        ]
-
-
-        fig = px.bar(
-
-            status_counts,
-
-            x="Status",
-
-            y="Count",
-
-            text="Count"
-
-        )
-
-
-        st.plotly_chart(
-            fig,
-            width="stretch"
-        )
-
-
-        # =================================================
-        # COMPLAINT MANAGEMENT
-        # =================================================
-
-        st.divider()
-
-
-        st.header(
-            "⚙️ Manage Complaints"
-        )
-
-
-        selected_complaint_id = st.selectbox(
-
-            "Select Complaint ID",
-
-            df["Complaint_ID"].astype(str).tolist()
-
-        )
-
-
-        selected_index = df[
-
-            df["Complaint_ID"]
-            .astype(str)
-            == selected_complaint_id
-
-        ].index[0]
-
-
-        complaint_data = df.loc[
-            selected_index
-        ]
-
-
-        # =================================================
-        # DISPLAY SELECTED COMPLAINT
-        # =================================================
-
-        st.subheader(
-            "📋 Selected Complaint Details"
-        )
-
-
-        st.write(
-            "**Complaint ID:**",
-            complaint_data["Complaint_ID"]
-        )
-
-
-        st.write(
-            "**Roll Number:**",
-            complaint_data["Roll_Number"]
-        )
-
-
-        st.write(
-            "**Student Department:**",
-            complaint_data["Student_Department"]
-        )
-
-
-        st.write(
-            "**Category:**",
-            complaint_data["Category"]
-        )
-
-
-        st.write(
-            "**Priority:**",
-            complaint_data["Priority"]
-        )
-
-
-        st.write(
-            "**Sentiment:**",
-            complaint_data["Sentiment"]
-        )
-
-
-        st.write(
-            "**Assigned Department:**",
-            complaint_data["Assigned_Department"]
-        )
-
-
-        st.write(
-            "**Complaint:**"
-        )
-
-
-        st.info(
-            complaint_data["Complaint"]
-        )
-
-
-        # =================================================
-        # UPDATE FORM
-        # =================================================
-
-        st.subheader(
-            "✏️ Update Complaint"
-        )
-
-
-        with st.form(
-
-            "manage_complaint_form"
-
-        ):
-
-
-            staff_name = st.text_input(
-
-                "Assign Staff Member",
-
-                value=str(
-                    complaint_data[
-                        "Assigned_Staff"
-                    ]
+                df["Assigned_Staff"] = (
+                    "Not Assigned"
                 )
 
-            )
-
-
-            status_options = [
-
-                "Pending",
-
-                "In Progress",
-
-                "Resolved"
-
-            ]
-
-
-            current_status = str(
-
-                complaint_data["Status"]
-
-            ).strip()
-
-
-            if current_status in status_options:
-
-                status_index = (
-
-                    status_options.index(
-                        current_status
-                    )
-
-                )
 
             else:
 
-                status_index = 0
+                df["Assigned_Staff"] = (
+
+                    df["Assigned_Staff"]
+                    .fillna("Not Assigned")
+
+                )
 
 
-            new_status = st.selectbox(
+            if "Resolution_Details" not in df.columns:
 
-                "Update Status",
-
-                status_options,
-
-                index=status_index
-
-            )
+                df["Resolution_Details"] = (
+                    "Not Resolved Yet"
+                )
 
 
-            current_resolution = str(
+            else:
 
-                complaint_data[
-                    "Resolution_Details"
+                df["Resolution_Details"] = (
+
+                    df["Resolution_Details"]
+                    .fillna("Not Resolved Yet")
+
+                )
+
+
+            if df.empty:
+
+                st.warning(
+                    "⚠️ No complaint records available."
+                )
+
+
+            else:
+
+
+                # =========================================
+                # METRICS
+                # =========================================
+
+                total_complaints = len(df)
+
+
+                pending_complaints = len(
+
+                    df[
+                        df["Status"]
+                        .astype(str)
+                        .str.strip()
+                        .str.lower()
+                        == "pending"
+                    ]
+
+                )
+
+
+                in_progress_complaints = len(
+
+                    df[
+                        df["Status"]
+                        .astype(str)
+                        .str.strip()
+                        .str.lower()
+                        == "in progress"
+                    ]
+
+                )
+
+
+                resolved_complaints = len(
+
+                    df[
+                        df["Status"]
+                        .astype(str)
+                        .str.strip()
+                        .str.lower()
+                        == "resolved"
+                    ]
+
+                )
+
+
+                col1, col2, col3, col4 = st.columns(4)
+
+
+                with col1:
+
+                    st.metric(
+                        "Total Complaints",
+                        total_complaints
+                    )
+
+
+                with col2:
+
+                    st.metric(
+                        "Pending",
+                        pending_complaints
+                    )
+
+
+                with col3:
+
+                    st.metric(
+                        "In Progress",
+                        in_progress_complaints
+                    )
+
+
+                with col4:
+
+                    st.metric(
+                        "Resolved",
+                        resolved_complaints
+                    )
+
+
+                st.divider()
+
+
+                # =========================================
+                # CATEGORY CHART
+                # =========================================
+
+                st.subheader(
+                    "📌 Complaints by Category"
+                )
+
+
+                category_counts = (
+
+                    df["Category"]
+                    .dropna()
+                    .value_counts()
+                    .reset_index()
+
+                )
+
+
+                category_counts.columns = [
+                    "Category",
+                    "Count"
                 ]
 
-            )
+
+                fig = px.bar(
+
+                    category_counts,
+
+                    x="Category",
+
+                    y="Count",
+
+                    text="Count"
+
+                )
 
 
-            if current_resolution == "Not Resolved Yet":
-
-                current_resolution = ""
-
-
-            resolution_details = st.text_area(
-
-                "Resolution Details",
-
-                value=current_resolution,
-
-                height=120,
-
-                placeholder=
-                "Enter the action taken to resolve this complaint..."
-
-            )
+                st.plotly_chart(
+                    fig,
+                    width="stretch"
+                )
 
 
-            update_button = st.form_submit_button(
+                # =========================================
+                # PRIORITY CHART
+                # =========================================
 
-                "💾 Save Changes"
-
-            )
-
-
-        # =================================================
-        # SAVE UPDATES
-        # =================================================
-
-        if update_button:
+                st.subheader(
+                    "⚠️ Complaints by Priority"
+                )
 
 
-            if staff_name.strip() == "":
+                priority_counts = (
 
-                staff_name = "Not Assigned"
+                    df["Priority"]
+                    .dropna()
+                    .value_counts()
+                    .reset_index()
 
-
-            df.loc[
-
-                selected_index,
-
-                "Assigned_Staff"
-
-            ] = staff_name
+                )
 
 
-            df.loc[
-
-                selected_index,
-
-                "Status"
-
-            ] = new_status
+                priority_counts.columns = [
+                    "Priority",
+                    "Count"
+                ]
 
 
-            if new_status == "Resolved":
+                fig = px.bar(
+
+                    priority_counts,
+
+                    x="Priority",
+
+                    y="Count",
+
+                    text="Count"
+
+                )
 
 
-                if resolution_details.strip() == "":
+                st.plotly_chart(
+                    fig,
+                    width="stretch"
+                )
 
-                    st.warning(
-                        "⚠️ Please enter Resolution Details before resolving the complaint."
+
+                # =========================================
+                # STATUS CHART
+                # =========================================
+
+                st.subheader(
+                    "📋 Complaints by Status"
+                )
+
+
+                status_counts = (
+
+                    df["Status"]
+                    .dropna()
+                    .value_counts()
+                    .reset_index()
+
+                )
+
+
+                status_counts.columns = [
+                    "Status",
+                    "Count"
+                ]
+
+
+                fig = px.bar(
+
+                    status_counts,
+
+                    x="Status",
+
+                    y="Count",
+
+                    text="Count"
+
+                )
+
+
+                st.plotly_chart(
+                    fig,
+                    width="stretch"
+                )
+
+
+                # =========================================
+                # SENTIMENT CHART
+                # =========================================
+
+                st.subheader(
+                    "😊 Sentiment Analysis"
+                )
+
+
+                sentiment_counts = (
+
+                    df["Sentiment"]
+                    .dropna()
+                    .value_counts()
+                    .reset_index()
+
+                )
+
+
+                sentiment_counts.columns = [
+                    "Sentiment",
+                    "Count"
+                ]
+
+
+                fig = px.bar(
+
+                    sentiment_counts,
+
+                    x="Sentiment",
+
+                    y="Count",
+
+                    text="Count"
+
+                )
+
+
+                st.plotly_chart(
+                    fig,
+                    width="stretch"
+                )
+
+
+                # =========================================
+                # DEPARTMENT CHART
+                # =========================================
+
+                st.subheader(
+                    "🏢 Complaints by Assigned Department"
+                )
+
+
+                department_counts = (
+
+                    df["Assigned_Department"]
+                    .dropna()
+                    .value_counts()
+                    .reset_index()
+
+                )
+
+
+                department_counts.columns = [
+                    "Department",
+                    "Count"
+                ]
+
+
+                fig = px.bar(
+
+                    department_counts,
+
+                    x="Department",
+
+                    y="Count",
+
+                    text="Count"
+
+                )
+
+
+                st.plotly_chart(
+                    fig,
+                    width="stretch"
+                )
+
+
+                # =========================================
+                # STAFF ASSIGNMENT
+                # =========================================
+
+                st.subheader(
+                    "👨‍💼 Staff Assignment Details"
+                )
+
+
+                assigned_staff_count = len(
+
+                    df[
+                        df["Assigned_Staff"]
+                        .astype(str)
+                        .str.strip()
+                        != "Not Assigned"
+                    ]
+
+                )
+
+
+                unassigned_count = (
+                    total_complaints
+                    - assigned_staff_count
+                )
+
+
+                staff_col1, staff_col2 = st.columns(2)
+
+
+                with staff_col1:
+
+                    st.metric(
+                        "Assigned Complaints",
+                        assigned_staff_count
                     )
 
 
-                    return
+                with staff_col2:
+
+                    st.metric(
+                        "Not Assigned",
+                        unassigned_count
+                    )
 
 
-                df.loc[
+                # =========================================
+                # RESOLVED COMPLAINTS
+                # =========================================
 
-                    selected_index,
-
-                    "Resolution_Details"
-
-                ] = resolution_details
+                st.divider()
 
 
-            else:
+                st.subheader(
+                    "✅ Resolved Complaints and Resolution Details"
+                )
 
 
-                if resolution_details.strip() == "":
+                resolved_df = df[
 
-                    df.loc[
+                    df["Status"]
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    == "resolved"
 
-                        selected_index,
+                ].copy()
 
-                        "Resolution_Details"
 
-                    ] = "Not Resolved Yet"
+                if resolved_df.empty:
+
+                    st.info(
+                        "No resolved complaints available yet."
+                    )
 
 
                 else:
 
-                    df.loc[
 
-                        selected_index,
+                    resolution_columns = [
 
+                        "Complaint_ID",
+                        "Roll_Number",
+                        "Complaint",
+                        "Category",
+                        "Assigned_Department",
+                        "Assigned_Staff",
+                        "Status",
                         "Resolution_Details"
 
-                    ] = resolution_details
+                    ]
 
 
-            # SAVE CSV
+                    available_columns = [
 
-            save_complaint_data(df)
+                        column
 
+                        for column in resolution_columns
 
-            st.success(
-                "✅ Complaint updated successfully!"
-            )
+                        if column in resolved_df.columns
 
-
-            st.balloons()
+                    ]
 
 
-            st.rerun()
+                    st.dataframe(
+
+                        resolved_df[
+                            available_columns
+                        ],
+
+                        width="stretch"
+
+                    )
 
 
-        # =================================================
-        # ALL COMPLAINT RECORDS
-        # =================================================
+                # =========================================
+                # ALL COMPLAINT RECORDS
+                # =========================================
 
-        st.divider()
-
-
-        st.header(
-            "📋 All Complaint Records"
-        )
+                st.divider()
 
 
-        display_df = df.copy()
+                st.subheader(
+                    "📋 All Complaint Records"
+                )
 
 
-        display_df.index = range(
-
-            1,
-
-            len(display_df) + 1
-
-        )
+                display_df = df.copy()
 
 
-        display_df.index.name = "S.No"
+                display_df.index = range(
+                    1,
+                    len(display_df) + 1
+                )
 
 
-        st.dataframe(
+                display_df.index.name = "S.No"
 
-            display_df,
 
-            width="stretch"
-
-        )
+                st.dataframe(
+                    display_df,
+                    width="stretch"
+                )
 
 
 # =========================================================
