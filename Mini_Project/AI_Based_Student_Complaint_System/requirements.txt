@@ -1,6 +1,8 @@
 streamlit
 pandas
-plotly
+numpy
 joblib
 scikit-learn
 nltk
+plotly
+textblob
