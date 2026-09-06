@@ -12,7 +12,15 @@ from datetime import datetime
 from src.config import OUTPUT_DIR
 
 
+# =========================================================
+# COMPLAINT STORAGE CLASS
+# =========================================================
+
 class ComplaintStorage:
+
+    # =====================================================
+    # INITIALIZATION
+    # =====================================================
 
     def __init__(self):
 
@@ -22,10 +30,12 @@ class ComplaintStorage:
             exist_ok=True
         )
 
+        # Complaint CSV file path
         self.file_path = (
             OUTPUT_DIR / "complaint_records.csv"
         )
 
+        # CSV Headers
         self.headers = [
 
             "Complaint_ID",
@@ -64,7 +74,7 @@ class ComplaintStorage:
 
 
     # =====================================================
-    # GENERATE COMPLAINT ID
+    # GENERATE UNIQUE COMPLAINT ID
     # =====================================================
 
     def generate_complaint_id(self):
@@ -82,8 +92,11 @@ class ComplaintStorage:
 
     def save_complaint(self, record):
 
+        # Check whether the file already exists
         file_exists = self.file_path.exists()
 
+
+        # Open CSV file in append mode
         with open(
             self.file_path,
             mode="a",
@@ -96,6 +109,8 @@ class ComplaintStorage:
                 fieldnames=self.headers
             )
 
+
+            # Write headers if file is empty
             if (
                 not file_exists
                 or self.file_path.stat().st_size == 0
@@ -104,53 +119,106 @@ class ComplaintStorage:
                 writer.writeheader()
 
 
+            # Write complaint record
             writer.writerow({
 
                 "Complaint_ID":
-                    record["Complaint_ID"],
+                    record.get(
+                        "Complaint_ID",
+                        ""
+                    ),
 
                 "Date_Time":
-                    record["Date_Time"],
+                    record.get(
+                        "Date_Time",
+                        ""
+                    ),
 
                 "Roll_Number":
-                    record["Roll_Number"],
+                    record.get(
+                        "Roll_Number",
+                        ""
+                    ),
 
                 "Student_Department":
-                    record["Student_Department"],
+                    record.get(
+                        "Student_Department",
+                        ""
+                    ),
 
                 "Year":
-                    record["Year"],
+                    record.get(
+                        "Year",
+                        ""
+                    ),
 
                 "Semester":
-                    record["Semester"],
+                    record.get(
+                        "Semester",
+                        ""
+                    ),
 
                 "Complaint":
-                    record["Complaint"],
+                    record.get(
+                        "Complaint",
+                        ""
+                    ),
 
                 "Category":
-                    record["Category"],
+                    record.get(
+                        "Category",
+                        ""
+                    ),
 
                 "Sentiment":
-                    record["Sentiment"],
+                    record.get(
+                        "Sentiment",
+                        ""
+                    ),
 
                 "Priority":
-                    record["Priority"],
+                    record.get(
+                        "Priority",
+                        ""
+                    ),
 
                 "Assigned_Department":
-                    record["Department"],
+                    record.get(
+                        "Department",
+                        record.get(
+                            "Assigned_Department",
+                            "General Administration"
+                        )
+                    ),
 
                 "Assigned_Staff":
-                    "Not Assigned",
+                    record.get(
+                        "Assigned_Staff",
+                        "Not Assigned"
+                    ),
 
                 "Status":
-                    record["Status"],
+                    record.get(
+                        "Status",
+                        "Pending"
+                    ),
 
                 "Suggested_Resolution":
-                    record["Suggested Resolution"],
+                    record.get(
+                        "Suggested Resolution",
+                        record.get(
+                            "Suggested_Resolution",
+                            ""
+                        )
+                    ),
 
                 "Resolution_Details":
-                    "Not Resolved Yet"
+                    record.get(
+                        "Resolution_Details",
+                        "Not Resolved Yet"
+                    )
 
             })
+
 
         return self.file_path
